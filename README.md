@@ -11,9 +11,6 @@ While multimodal survival prediction models are increasingly more accurate, thei
 ## Updates
 - **02-03-2026:** First version of the codebase is online!
 
-## TO DO
-- Update DIMAFx reference
-
 ## Model checkpoints
 Our model is trained on the outputs of the [UNI](https://github.com/mahmoodlab/UNI) foundation model. Due to [UNI licensing restrictions](https://huggingface.co/MahmoodLab/UNI), we cannot provide the pretrained weights of our model directly.
 Instead, we provide detailed instructions to fully reproduce our results. If anything is unclear or if you encounter issues, please don’t hesitate to open an issue or contact us via email at a.eijpe@uu.nl.
@@ -40,6 +37,10 @@ For detailed instructions on each step, please see the [README](src/README.md) i
 ## Acknowledgements
 This project builds upon several excellent research repositories, including [DIMAF](https://github.com/Trustworthy-AI-UU-NKI/DIMAF), [MMP](https://github.com/mahmoodlab/MMP), [UNI](https://github.com/mahmoodlab/UNI), [CLAM](https://github.com/mahmoodlab/CLAM) and [CSDisentanglement_Metrics_Library](https://github.com/vios-s/CSDisentanglement_Metrics_Library).
 We are grateful to the authors and developers of these projects for their contributions and for sharing their work openly.
+
+## Paper
+This is de codebase for our preprint [Bridging the gap between Performance and Interpretability: An Explainable Disentangled Multimodal Framework for Cancer Survival Prediction](https://arxiv.org/pdf/2603.02162). Please consider citing our work if it contributes to your research.
+
 
 
 ![](docs/uu_logo.png)
