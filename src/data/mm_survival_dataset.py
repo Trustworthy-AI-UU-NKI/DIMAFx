@@ -36,12 +36,18 @@ class MMSurvivalDataset(Dataset):
         # Data args
         self.data_source = args.data_source
         self.split_dir = os.path.join(self.data_source, f'splits/{self.fold}/')
+        self.duplicates = False
+        if 'oversampled' in args.data_filter_type:
+            self.duplicates = True
 
         # Clinical data
         if args.data_filter_type == 'none':
             self.data_file = f'{self.mode}.csv'
         else:
-            self.data_file = f'{self.mode}_{args.data_filter_type}.csv'
+            if mode =='test' and 'censor' in args.data_filter_type:
+                self.data_file = f'{self.mode}_filtered.csv'
+            else:
+                self.data_file = f'{self.mode}_{args.data_filter_type}.csv'
 
         # WSI args
         self.slide_col = slide_col
@@ -85,8 +91,9 @@ class MMSurvivalDataset(Dataset):
         # check that all censorship values are binary integers
         assert self.data_df[self.censorship_col].isin([0, 1]).all(), 'Censorship values must be binary integers.'
 
-        # Should be no duplicates in splits file
-        assert len(list(self.data_df[self.slide_col].astype(str).unique())) == len(list(self.data_df[self.slide_col].astype(str))), 'There are duplicates in the given splits file.'
+        if not self.duplicates:
+            # Should be no duplicates in splits file
+            assert len(list(self.data_df[self.slide_col].astype(str).unique())) == len(list(self.data_df[self.slide_col].astype(str))), 'There are duplicates in the given splits file.'
 
     def check_wsi_files(self, feats_wsi_df):
         """ Check that the wsi files are complete and that there are no duplicates. """
@@ -94,6 +101,7 @@ class MMSurvivalDataset(Dataset):
         missing_feats_in_split = pd_diff(self.data_df[self.slide_col], feats_wsi_df[self.slide_col])
         assert len(missing_feats_in_split) == 0, f'Missing Features in Split:\n{missing_feats_in_split}.'
 
+      
         # Should be no duplicates
         duplicates = feats_wsi_df[self.slide_col].duplicated()
         assert duplicates.sum() == 0, f'Features duplicated in data source(s):{feats_wsi_df[duplicates].to_string()}.'
@@ -119,9 +127,14 @@ class MMSurvivalDataset(Dataset):
         feats_wsi_df = pd.DataFrame([(e.path, os.path.splitext(e.name)[0]) for e in os.scandir(self.feat_dir_wsi)], columns=['fpath', self.slide_col]).reset_index(drop=True)
         self.check_wsi_files(feats_wsi_df)
 
-        # All slide ids to feature paths should have a one-to-one mapping. Raises ValueError if not.
-        # Add feature paths to data frame
-        self.data_df = self.data_df.merge(feats_wsi_df, how='inner', on=self.slide_col, validate='1:1')
+        if self.duplicates:
+            # All slide ids to feature paths should have a one-to-one mapping. Raises ValueError if not.
+            # Add feature paths to data frame
+            self.data_df = self.data_df.merge(feats_wsi_df, how='inner', on=self.slide_col)
+        else:
+            # All slide ids to feature paths should have a one-to-one mapping. Raises ValueError if not.
+            # Add feature paths to data frame
+            self.data_df = self.data_df.merge(feats_wsi_df, how='inner', on=self.slide_col, validate='1:1')
         self.data_df = self.data_df[list(self.data_df.columns[-1:]) + list(self.data_df.columns[:-1])]
     
     def init_df_rna(self):
@@ -234,6 +247,18 @@ class MMSurvivalDataset(Dataset):
     def __len__(self):
         """ Get the number of samples. """
         return len(self.data_df)
+    
+    def find_corresponding_idx(self, idx):
+        # For when we are oversampling
+        slide_id = self.data_df.loc[idx][self.slide_col]
+        # Find the corresponding index in the image data
+        idx_img = self.data_df[self.data_df[self.slide_col] == slide_id].index
+        for idx_i in idx_img:
+            if idx_i < len(self.X):
+                assert self.data_df.loc[idx_i][self.slide_col] == slide_id, f"Index {idx_i} does not correspond to the same slide id {slide_id} as index {idx}."
+                return idx_i
+        
+        raise ValueError(f"No corresponding index found for slide id {slide_id} in the image data.")
 
     def __getitem__(self, idx):
         # Obtain labels
@@ -259,7 +284,12 @@ class MMSurvivalDataset(Dataset):
         # Obtain WSI data
         if self.X is not None:
             # We already created the unsupervised slide embedding (slide summary)
-            out['img'] = self.X[idx]
+            # For when we are oversampling
+            if idx >= len(self.X):
+                idx_img = self.find_corresponding_idx(idx)
+                out['img'] = self.X[idx_img]
+            else:
+                out['img'] = self.X[idx]
         else:
             # Else obtain the image features
             feat_path = self.data_df.loc[idx]['fpath']

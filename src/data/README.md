@@ -3,13 +3,15 @@
 This folder contains all data files, from preprocessing to dataset classes.  
 
 - `data_files/` – Contains all data files:  
-  - `hallmarks_signatures.csv`: gene sets for all pathways.  
+  - `hallmarks_signatures.csv`: gene sets for all pathways. 
+  - `S1_fold_distribution.xlsx`: Meta information on train/test splits for all folds and data sets.
   - Cohort-specific folders (`tcga_blca`, `tcga_brca`, `tcga_luad`, `tcga_kirc`) containing:  
     - Train/test splits for 5-fold cross-validation (stratified by site).  
     - Clinical data of all samples (`clinical_data_all{_filtered}.csv`).  
 - `preprocess_TCGA_rna.py` – Script with all steps for preprocessing the RNA data.  
 - `preprocess_TCGA_rna.ipynb` – Notebook version with additional visualization options.
 - `clinical_data.ipynb` – Notebook for exploring clinical data.
+- `censor_analysis.ipynb` - Notebook to artificially create datasets with specified censor rates using oversampling or undersampling.
 - `mm_survival_dataset.py`– Dataset class for the multimodal data used during training and testing.  
 - `WSI_dataset.py`– Dataset classes for WSI data for creating prototypes and for WSI visualization. 
 
@@ -89,6 +91,12 @@ For the whole slide images, follow these steps:
 - **Process & store the WSIs:** Segment & patch the images, and extract features:
     - We used the [CLAM](https://github.com/mahmoodlab/CLAM) framework and the [UNI](https://github.com/mahmoodlab/UNI) WSI foundation model to extract patch features.
     - Each WSI should be represented as a set of .h5 patch feature files stored in `feats_h5/`.
+
+
+## Censoring sensitivity analysis
+To create the data for the censoring sensitivity analysis (Figure E.1 in the paper), run the `censor_analysis.ipynb` notebook. Starting from an existing dataset, it creates and saves new datasets at specified censoring rates by oversampling or undersampling the observed events.
+
+To train on one of these datasets, pass the generated file to the main run (see the [main README](../README.md) for more details).
 
 ## Tips & Notes
 - Make sure all folder names match exactly for scripts to work.
