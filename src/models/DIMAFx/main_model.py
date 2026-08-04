@@ -115,8 +115,8 @@ class DIMAFx(nn.Module):
             self.aggr_wsi_rna = torch.mean
         elif self.aggr_post_embed == 'weighted_mean':
             self.aggr_rna = PrototypeAggregator(multi_out_dim, 50)
-            self.aggr_wsi = PrototypeAggregator(multi_out_dim, 16)
-            self.aggr_rna_wsi = PrototypeAggregator(multi_out_dim, 16)
+            self.aggr_wsi = PrototypeAggregator(multi_out_dim, self.nr_wsi_prototypes)
+            self.aggr_rna_wsi = PrototypeAggregator(multi_out_dim, self.nr_wsi_prototypes)
             self.aggr_wsi_rna = PrototypeAggregator(multi_out_dim, 50)
         else:
             sys.exit("Unspecified post attention prototype aggregation method! Abborting..")
@@ -151,6 +151,7 @@ class DIMAFx(nn.Module):
 
     def disentangled_attention_fusion(self, wsi_pre_fusion_exp, rna_pre_fusion_exp):
         # Pass through disentangled fusion 
+        
         # B, 50, multi_out_dim
         post_self_rna = self.rna_attention(rna_pre_fusion_exp, rna_pre_fusion_exp)
 

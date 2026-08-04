@@ -140,7 +140,8 @@ def survival_test(args, test_dl, fold, survival_info_train):
                        num_classes=num_classes,
                        loss_fn=loss_fn,
                        aggr_post_embed=args.aggr_post_embed,
-                       wsi_representation_type=args.wsi_repr
+                       wsi_representation_type=args.wsi_repr,
+                       num_proto_wsi=args.n_proto
                        )
     model.to(device)
     model.from_pretrained(pretrained_model_path)
