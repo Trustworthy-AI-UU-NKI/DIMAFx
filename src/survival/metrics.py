@@ -1,5 +1,6 @@
 import torch
 import sys
+import numpy as np
 
 from sksurv.util import Surv
 from sksurv.metrics import concordance_index_censored, concordance_index_ipcw
@@ -11,7 +12,10 @@ def compute_survival_metrics(all_censorships, all_event_times, all_risk_scores, 
     c_index_ipcw = 0.
 
     if survival_info_train:
-        structured_survival_data_test = Surv.from_arrays(event=(1-all_censorships).astype(bool), time=all_event_times)
+        max_train_time = survival_info_train['time'].max()
+        all_event_times_clipped = np.clip(all_event_times, a_min=None, a_max=max_train_time - 1)
+
+        structured_survival_data_test = Surv.from_arrays(event=(1-all_censorships).astype(bool), time=all_event_times_clipped)
         structured_survival_data_train = Surv.from_arrays(event=(1-survival_info_train['censorship']).astype(bool), time=survival_info_train['time'])
 
         c_index_ipcw = concordance_index_ipcw(structured_survival_data_train, structured_survival_data_test, estimate=all_risk_scores)[0]
@@ -57,7 +61,7 @@ def compute_dist_corr(x, y):
         dcor = dcov / torch.sqrt(dvar_x * dvar_y + 1e-8)
         return dcor
 
-def compute_disentanglement(rna_specific, wsi_specific, wsi_rna_mm, rna_wsi_mm, type='dcor'):     
+def compute_disentanglement(rna_specific, wsi_specific, wsi_rna_mm, rna_wsi_mm, type='dcor', name=''):     
     shared_repr = torch.cat([wsi_rna_mm, rna_wsi_mm], dim=-1)
     single_repr = torch.cat([rna_specific, wsi_specific], dim=-1)
 
@@ -81,7 +85,7 @@ def compute_disentanglement(rna_specific, wsi_specific, wsi_rna_mm, rna_wsi_mm, 
     total = (D2 + D1) /2
 
 
-    return {f'Total Disentanglement {type}': total.item(), f'D1 Disentanglement {type}': D1.item(), f'D2 Disentanglement {type}': D2.item()}
+    return {f'Total Disentanglement {type}{name}': total.item(), f'D1 Disentanglement {type}{name}': D1.item(), f'D2 Disentanglement {type}{name}': D2.item()}
 
 
     
