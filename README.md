@@ -10,6 +10,7 @@ While multimodal survival prediction models are increasingly more accurate, thei
 
 ## Updates
 - **02-03-2026:** First version of the codebase is online!
+- **05-08-2026:** Updated codebase with ablation study, censoring and SHAP stability experiments, and additional support for the interpretability analysis.
 
 ## Model checkpoints
 Our model is trained on the outputs of the [UNI](https://github.com/mahmoodlab/UNI) foundation model. Due to [UNI licensing restrictions](https://huggingface.co/MahmoodLab/UNI), we cannot provide the pretrained weights of our model directly.
@@ -31,7 +32,7 @@ The full workflow consists of the following steps:
 - Running SHAP to asses feature importance
 - Interpretability analysis of DIMAFx
 
-For detailed instructions on each step, please see the [README](src/README.md) in the `src` folder.
+For detailed instructions on each step or on how to run the additional experiments like the censoring experiment, please see the [README](src/README.md) in the `src` folder. 
 
 
 ## Acknowledgements

@@ -1,6 +1,6 @@
 # Instructions on running DIMAFx
 ## 1. Data preprocessing
-First , prepare the data such that DIMAFx can use it. Please see the [README](data/README.md) in the `data` folder for detailed instructions on how to download, preprocesss and structure the data. 
+First , prepare the data such that DIMAFx can use it. Please see the [README](data/README.md) in the `data` folder for detailed instructions on how to download, preprocesss and structure the data. It also contains instructions on how to create the data for the censoring sensitivity analysis (Figure E.1 in the paper)
 Currently, it supports the 4 [TCGA](https://portal.gdc.cancer.gov) data cohorts used in the paper, i.e., BRCA, BLCA, LUAD and KIRC. However, it can easily be adapted to other cohorts also. After this step, cd back to the current directory (`src`).
 
 
@@ -20,7 +20,7 @@ python main_prototype.py --data_source data/data_files/tcga_brca \
 - `mode`: Clustering method (faiss for GPU, kmeans for CPU, default = faiss).
 - `n_proto`: Number of prototypes (default = 16).
 
-For all possible arguments, see `main_prototype.py`. These default values reproduce the DIMAFx and DIMAF settings used in our paper.
+For all possible arguments, see `main_prototype.py`. These default values reproduce the DIMAFx and DIMAF settings used in our paper. To run the ablation variants with a different number of prototypes (N_h), only change `n_proto`. For the other ablations and censoring experiments, we use the same settings here as DIMAFx.
 
 
 ## 3. Train and test for survival prediction
@@ -55,12 +55,14 @@ python main_survival.py --data_source data/data_files/tcga_brca/ \
 
 For all possible arguments, see `main_survival.py`. These default values reproduce the DIMAFx settings used in our paper. 
 
-If you want to run DIMAF, put:
-- `aggr_post_embed` to `mean` 
-- `wsi_repr` to `normal` 
-
-If you want to run the ablation version without the disentanglement loss, put:
-- `loss_fn` to `cox`
+### Ablations
+If otherwise mentioned, use the same arguments as above. Don't forget to change `exp_code` to the name of the specific run/experiment!
+- If you want to run DIMAF, put: `aggr_post_embed` to `mean` and `wsi_repr` to `normal` 
+- If you want to run the ablation version without the disentanglement loss, put: `loss_fn` to `cox`
+- If you want to run DIMAFx_pre_card: put `wsi_repr` to `normal`
+- If you want to run DIMAFx_mean_aggr: put `aggr_post_embed` to `mean`
+- If you want to run the ablations with the different weights for the disentanglement loss: put `w_dis` to the corresponding weight (default=7).
+- If you want to run the ablations with the different number of WSI prototypes: put `n_proto` to the number of prototypes and change `proto_file` to the corresponding prototype file you created in Section 2. 
 
 To evaluate survival and disentanglement performance across folds (mean ± std), use `get_results.ipynb`.
 
@@ -81,6 +83,13 @@ To compute the SHAP values, run the same command as training but set `--mode sha
     - LUAD: 320
     - KIRC: 192
 - `explainer`: Explanation technique (`shap` by default, also supports `eg` for Expected Gradients).
+
+To check whether the SHAP values and rankings are stable, two settings can be varied:
+
+- **Background set size** — recompute the SHAP values with a different `--shap_refdist_n`. The size must be a multiple of 64 and no larger than the original training set.
+- **Background seed** — set `--mode shap_stable` and include `--shap_refdist_n` and `--explainer` as needed. This will compute the SHAP values for 5 different seeds and save them.
+
+The code for computing correlations between the SHAP values obtained under these different settings is in [this notebook](interpretability/shap_background_stability.ipynb).
 
 
 ## 6. Interpretability analysis
