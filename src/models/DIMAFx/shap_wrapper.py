@@ -30,9 +30,10 @@ class SHAP_DIMAFx(nn.Module):
 
         # Data params
         self.pathway_sizes = rna_dims
+        self.num_proto_wsi = num_proto_wsi
 
         # Feat names
-        self.wsi_feat_names = [f"wsi_pt_{i+1}" for i in range(16)]
+        self.wsi_feat_names = [f"wsi_pt_{i+1}" for i in range(num_proto_wsi)]
         self.rna_feat_names = [f"rna_pt_{i+1}" for i in range(50)]
 
         # Trained model
@@ -93,7 +94,7 @@ class SHAP_DIMAFx(nn.Module):
 
     def forward_pre_attn(self, data):
         """ Forward loop to compute SHAP values for the unimodal embeddings. """
-        wsi_tensor, rna_tensor = data[:, :16, :], data[:, 16:, :]
+        wsi_tensor, rna_tensor = data[:, :self.num_proto_wsi, :], data[:, self.num_proto_wsi:, :]
         all_logits = []
 
         # Get the total number of samplesxs
@@ -117,7 +118,7 @@ class SHAP_DIMAFx(nn.Module):
     
     def forward_start_attn(self, data):
         """ Forward loop to compute SHAP values for the input. """
-        wsi_tensor, rna_tensor = data[:, :16, :], data[:, 16:, :]
+        wsi_tensor, rna_tensor = data[:, :self.num_proto_wsi, :], data[:, self.num_proto_wsi:, :]
         all_logits = []
 
         # Get the total number of samplesxs

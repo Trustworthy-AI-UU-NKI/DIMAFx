@@ -33,7 +33,7 @@ def get_dataset(args, mode, fold):
     return dataset, in_dim
 
 
-def prepare_data_shap_start(data, wsi_dim):
+def prepare_data_shap_start(data, wsi_dim, num_proto_wsi=16):
     """ Function that prepares the data to obtain shap values of initial embeddings. """
     # WSI [N, 16, 2049]
     wsi_tensor = data.X
@@ -46,7 +46,7 @@ def prepare_data_shap_start(data, wsi_dim):
     for i in range(data.__len__()):
         pathway_summary = []
         
-        case_id = data.data_df.loc[i]['case_id']
+        case_id = data.data_df.loc[i]['slide_id']
         samples.append(case_id)
         # Obtain the pathway summary 
         for j in range(len(data.pathway_names)):
@@ -65,30 +65,30 @@ def prepare_data_shap_start(data, wsi_dim):
     pathway_summs_all = torch.stack(pathway_summs_all)  
 
     data_tensor = torch.cat((wsi_tensor, pathway_summs_all), dim=1)  
-    feature_names = [f"wsi_pt_{i}" for i in range(16)] + [f"rna_pt_{i}" for i in range(50)]
+    feature_names = [f"wsi_pt_{i}" for i in range(num_proto_wsi)] + [f"rna_pt_{i}" for i in range(50)]
 
     return data_tensor, feature_names, samples
 
-def prepare_data_shap_pre_attn(data, model, num_w):
+def prepare_data_shap_pre_attn(data, model, num_w, num_proto_wsi=16):
     """ Function that prepares the data to obtain shap values of the unimodal embeddings before fusion. """
     dataloader = DataLoader(data, batch_size=model.batch_size, shuffle=False, num_workers=num_w)
     preproc_dataset = model.prep_data_pre_attn(dataloader)
-    feature_names = [f"wsi_pt_{i}" for i in range(16)] + [f"rna_pt_{i}" for i in range(50)]
+    feature_names = [f"wsi_pt_{i}" for i in range(num_proto_wsi)] + [f"rna_pt_{i}" for i in range(50)]
     samples = []
     for i in range(data.__len__()):
-        case_id = data.data_df.loc[i]['case_id']
+        case_id = data.data_df.loc[i]['slide_id']
         samples.append(case_id)
 
     return preproc_dataset, feature_names, samples
 
-def prepare_data_shap_post_attn(data, model, num_w):
+def prepare_data_shap_post_attn(data, model, num_w, num_proto_wsi=16):
     """ Function that prepares the data to obtain shap values of ebeddings after fusion. """
     dataloader = DataLoader(data, batch_size=model.batch_size, shuffle=False, num_workers=num_w)
     preproc_dataset = model.prep_data_post_attn(dataloader)
-    feature_names = [f"rna_specific_{i}" for i in range(50)] + [f"wsi_rna_{i}" for i in range(50)] + [f"rna_wsi_{i}" for i in range(16)] + [f"wsi_specific_{i}" for i in range(16)]
+    feature_names = [f"rna_specific_{i}" for i in range(50)] + [f"wsi_rna_{i}" for i in range(50)] + [f"rna_wsi_{i}" for i in range(num_proto_wsi)] + [f"wsi_specific_{i}" for i in range(num_proto_wsi)]
     samples = []
     for i in range(data.__len__()):
-        case_id = data.data_df.loc[i]['case_id']
+        case_id = data.data_df.loc[i]['slide_id']
         samples.append(case_id)
 
     return preproc_dataset, feature_names, samples
@@ -100,12 +100,12 @@ def prepare_data_shap_post_attn_av(data, model, num_w):
     feature_names = ["wsi_rna_zhg", "rna_wsi_zgh", "rna_specific_zgg", "wsi_specific_zhh"]
     samples = []
     for i in range(data.__len__()):
-        case_id = data.data_df.loc[i]['case_id']
+        case_id = data.data_df.loc[i]['slide_id']
         samples.append(case_id)
 
     return preproc_dataset, feature_names, samples
 
-def survival_shap(args, fold, post_attn='start'):
+def survival_shap(args, fold, post_attn='start', background_seed=None):
     """ Obtain shap values for trained survival prediction model. """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     results_dir_fold =  os.path.join(args.result_dir, f"Fold_{fold}/")
@@ -125,23 +125,24 @@ def survival_shap(args, fold, post_attn='start'):
                        post_attn=post_attn,
                        single_out_dim=256,
                        aggr_post_embed=args.aggr_post_embed,
-                       wsi_representation_type=args.wsi_repr)
+                       wsi_representation_type=args.wsi_repr,
+                       num_proto_wsi=args.n_proto)
     
     model.to(device)
     model.from_pretrained(pretrained_model_path)
 
     # Obtain input data for the shap_module
     if post_attn == 'start':
-        train_data, feature_names, samples_train = prepare_data_shap_start(train_data, wsi_dim)
-        test_data, feature_names_test, samples_test = prepare_data_shap_start(test_data, wsi_dim)
+        train_data, feature_names, samples_train = prepare_data_shap_start(train_data, wsi_dim, num_proto_wsi=args.n_proto)
+        test_data, feature_names_test, samples_test = prepare_data_shap_start(test_data, wsi_dim, num_proto_wsi=args.n_proto)
         assert feature_names_test == feature_names
     elif post_attn == 'modal':  
-        train_data, feature_names, samples_train = prepare_data_shap_pre_attn(train_data, model, args.num_workers)
-        test_data, feature_names_test, samples_test = prepare_data_shap_pre_attn(test_data, model, args.num_workers)
+        train_data, feature_names, samples_train = prepare_data_shap_pre_attn(train_data, model, args.num_workers, num_proto_wsi=args.n_proto)
+        test_data, feature_names_test, samples_test = prepare_data_shap_pre_attn(test_data, model, args.num_workers, num_proto_wsi=args.n_proto)
         assert feature_names_test == feature_names
     elif post_attn == 'post_attn':  
-        train_data, feature_names, samples_train = prepare_data_shap_post_attn(train_data, model, args.num_workers)
-        test_data, feature_names_test, samples_test = prepare_data_shap_post_attn(test_data, model, args.num_workers)
+        train_data, feature_names, samples_train = prepare_data_shap_post_attn(train_data, model, args.num_workers, num_proto_wsi=args.n_proto)
+        test_data, feature_names_test, samples_test = prepare_data_shap_post_attn(test_data, model, args.num_workers, num_proto_wsi=args.n_proto)
         assert feature_names_test == feature_names
     elif post_attn == 'post_attn_av':  
         train_data, feature_names, samples_train = prepare_data_shap_post_attn_av(train_data, model, args.num_workers)
@@ -150,8 +151,11 @@ def survival_shap(args, fold, post_attn='start'):
     else:
         sys.exit("SHAP mode is not implemented, abborting....")
 
-    # Get ref distributions chars
-    mask = shap.sample(train_data.to(device), args.shap_refdist_n)
+    if background_seed is not None:
+        mask = shap.sample(train_data.to(device), args.shap_refdist_n, random_state=background_seed)
+    else:
+        mask = shap.sample(train_data.to(device), args.shap_refdist_n)
+
     test_data = test_data.to(device)
     
     # Compute values with the given explainer
@@ -172,9 +176,9 @@ def survival_shap(args, fold, post_attn='start'):
 
     # Save shap values
     print("Saving shap values..")
-    name = f'{args.explainer}_all_test'
+    if background_seed is not None:
+        name = f'{args.explainer}_all_test_seed_{background_seed}'
+    else:
+        name = f'{args.explainer}_all_test_{args.shap_refdist_n}'
+
     save_pkl(resuls_dir_shap, f"{name}.pkl", {'shap values': shap_values_sq, 'Feature names': feature_names, "Samples": samples_test})
-  
-
-
-
