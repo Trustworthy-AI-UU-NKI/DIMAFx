@@ -7,7 +7,7 @@ import openslide
 import numpy as np
 import pandas as pd
 
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, spearmanr, pearsonr, kendalltau
 
 import seaborn as sns
 import matplotlib as mpl
@@ -186,8 +186,8 @@ def get_data_pathways(pathways, test_data, hallmarks, rna_data, shap_dict):
     plot_data = []
     for i, (sample, slide) in enumerate(zip(test_data['case_id'].values, test_data['slide_id'].values)):
      
-        case_id_index = list(shap_dict['Samples']).index(sample)
-        assert shap_dict['Samples'][case_id_index] == sample, "Correct case ID not found in results."
+        case_id_index = list(shap_dict['Samples']).index(slide)
+        assert shap_dict['Samples'][case_id_index] == slide, "Correct case ID not found in results."
         color_value_case = shap_values_rna[case_id_index]
 
         for pathway in pathways:
@@ -218,23 +218,49 @@ def get_data_pathways(pathways, test_data, hallmarks, rna_data, shap_dict):
     plot_data_group = pd.DataFrame(plot_data)
     return plot_data_group
 
-def pathway_swarm_plot(plot_data, cmap = "RdBu_r"):
+def pathway_swarm_plot(plot_data, color_name="SHAP value", x_name="Mean expression", x_label="Mean normalized pathway expression", cmap = "RdBu_r"):
     """ Plot the mean pathway expression of all samples per pathway together with the predicted risk score (group level). """
     
     # Normalize the color scale, indiciated by the predicted risk score, around zero.
-    col_val = plot_data["Color value"]
-    cbar_name = "SHAP"
+    col_val = plot_data[color_name]
+    cbar_name = color_name
     
     max_val = np.max(np.abs(col_val))
     norm = TwoSlopeNorm(vmin=-max_val, vcenter=0, vmax=max_val)
     cmap = plt.get_cmap(cmap)
+
+
+    # Compute Spearman correlation per pathway
+    pathways = plot_data["Pathway"].unique()
+    
+    results = []
+    for pathway in pathways:
+        subset = plot_data[plot_data["Pathway"] == pathway]
+        x = subset[x_name]
+        y = subset[color_name]
+        
+        sp_r, sp_p = spearmanr(x, y)
+        pe_r, pe_p = pearsonr(x, y)
+        kt_r, kt_p = kendalltau(x, y)
+        
+        results.append({
+            "Pathway": pathway,
+            "Spearman r": round(sp_r, 3),
+            "Spearman p": sp_p,
+            "Pearson r": round(pe_r, 3),
+            "Pearson p": pe_p,
+            "Kendall tau": round(kt_r, 3),
+            "Kendall p": kt_p,
+        })
+    
+    df = pd.DataFrame(results)
 
     fig, ax = plt.subplots(figsize=(13,6)) # 13,6
 
     # Create the swarm plot
     sns.swarmplot(
         data=plot_data,
-        x="Mean expression",
+        x=x_name,
         y="Pathway",
         hue=col_val,
         hue_norm=norm,
@@ -255,9 +281,11 @@ def pathway_swarm_plot(plot_data, cmap = "RdBu_r"):
     ax.tick_params(axis="x", bottom=True)
     ax.tick_params(axis="y", left=True) 
     ax.set_ylabel("")
-    ax.set_xlabel("Mean normalized pathway expression")
+    ax.set_xlabel(x_label)
 
     plt.show()
+
+    return df
 
 
 def get_data_ridge(pathway_nr, case, shap_feats, all_pathways, all_rna_data, tr_cases):

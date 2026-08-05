@@ -32,6 +32,9 @@ This sections explains how to do the unimodal interpretability analysis. Initial
     - Visualizing the mixture proportion distribution
     - Visualizing the prototypes by using the closest patches 
     - Visualize the WSI
+- `high_low_risk_wsi_feats.ipynb` - Code used to visualize the WSI features in the paper. 
+    - Visualizing specific WSI features of specific samples.
+    - Visualizing specific WSI features to show variability within protoypes. This shows high, low and intermediate risk features for a specific WSI feature.
 
 ### Visualize Transcriptomics features
 - `visualize_transcriptomics_feats.ipynb` – Notebook for visualizing the transcriptomics features:
