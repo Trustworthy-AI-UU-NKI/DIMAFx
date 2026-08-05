@@ -4,6 +4,22 @@ This folder contains all fles related to the interpretability analyis of DIMAFx.
 ## Feature importance
 Before the interpretability analysis, go to the [README](../README.md) in `src` to compute the shap values of all features. Specifically see step 5, which uses `shap_values.py` to compute the shap values using the trained models. 
 
+## SHAP stability across bootstrapped test sets
+
+`compute_shap_stability.py` quantifies how robust the top-ranked SHAP features are to the choice of test samples (Table F.1 in the paper).
+
+For each fold and each *k* ∈ {5, 10, 20, 30}:
+
+1. the test set is resampled with replacement `--bootstrap_samples` times (100 by default);
+2. for each resample, features are ranked by mean absolute SHAP value and the top *k* are kept;
+3. the Jaccard similarity is computed between all pairs of these top-*k* sets.
+
+The reported value is the mean ± standard deviation over all pairs. Values close to 1 indicate that the same features are selected regardless of which test samples are drawn.
+
+Stability is computed for both the unimodal features (`modal`) and the multimodal features after fusion (`post_attn`), and saved per fold.
+
+The notebook `shap_stability.ipynb` aggregates the per-fold results into the table reported in the paper. The `Avg.` column reports the mean and standard deviation across the five fold means.
+
 ## Unimodal feature analysis 
 This sections explains how to do the unimodal interpretability analysis. Initially, you can you can use `show_shap_unimodal.ipynb` to visualize the unimodal feature importance plots. You can also use this file to show the shap plots of single samples.
 
