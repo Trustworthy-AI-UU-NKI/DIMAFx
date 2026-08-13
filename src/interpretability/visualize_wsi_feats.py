@@ -11,7 +11,7 @@ from tqdm import tqdm
 sys.path.append('../')
 from embeddings.embeddings import get_mixture_params
 from utils.visualization_utils import get_panther_encoder, get_mixture_plot_figure, get_dataset, plot_pt
-
+from utils.general_utils import set_seed
 
 
 def find_grid_shape(k):
@@ -35,46 +35,7 @@ def find_top_k(slide_best_patches, threshold):
     print("Lowest ll is: ", min(slide_best_patches, key=lambda x: x[2]))
     return i
 
-
-def visualize_pt_assignment_general(split_folder, results_dir, type, fold, data_type, wsi_feats): 
-    """ Visualize the prototype assignments of all data in train or test splits. """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    all_mus = []
-
-    # Get PANTHER model and the wsi's to obtain the embeddings
-    panther_encoder = get_panther_encoder(split_folder=split_folder)
-    dataset = get_dataset(mode=data_type, fold=fold, type=type, wsi_feat_type=wsi_feats)
-
-    # Loop over dataset
-    with torch.inference_mode():
-        for idx in tqdm(range(len(dataset))):
-            batch = dataset.__getitem__(idx)
-            data = batch['img'].unsqueeze(dim=0)
-            data = data.to(device)
-
-            with torch.no_grad():
-                # Obtain slide embeddings (GMM parameters)
-                out, qqs = panther_encoder.representation(data).values()
-                mus, pis, sigmas = get_mixture_params(out.detach().cpu(), p=16)
-                # We obtain the mixture probabilities
-                mus = mus[0].detach().cpu().numpy()
-
-            # Save distribution importances of each slide
-            all_mus.append(mus)
-    
-
-    all_mus = np.array(all_mus)
-    all_mus_mean = np.mean(all_mus, axis=0)
-
-    # Visualize overall prototype assignment
-    results_dir = os.path.join(results_dir, data_type)
-    os.makedirs(results_dir, exist_ok=True)
-
-    fig_path = os.path.join(results_dir, f'pt_assignment.pdf')
-    get_mixture_plot_figure(all_mus_mean, plot_path=fig_path)
-
-def visualize_pt_per_sample(type, fold, mode, split_folder, results_dir, wsi_feats, th):
+def visualize_pt_per_sample(type, fold, mode, split_folder, results_dir, wsi_feats, th, nr_prototypes):
     """Visualize the closest patches to each prototype for a specific fold."""
     slides_fpath = f'../data/data_files/tcga_{type}/wsi/images'
     h5_feats_fpath = f"../data/data_files/tcga_{type}/wsi/{wsi_feats}/feats_h5"
@@ -85,7 +46,7 @@ def visualize_pt_per_sample(type, fold, mode, split_folder, results_dir, wsi_fea
     all_qq, all_patch_lens, all_ids, all_mus = [], [], [], []
 
     # Get PANTHER model and the wsi's to obtain the embeddings
-    panther_encoder = get_panther_encoder(split_folder=split_folder)
+    panther_encoder = get_panther_encoder(split_folder=split_folder, nr_prototypes=nr_prototypes)
     dataset = get_dataset(mode, fold, type, wsi_feats)
    
     # Loop over the dataset
@@ -100,7 +61,7 @@ def visualize_pt_per_sample(type, fold, mode, split_folder, results_dir, wsi_fea
                 out, qqs = panther_encoder.representation(data).values()
                 # Obtain the posterior probabilities of each patch given each prototype
                 qq = qqs[0,:,:,0].cpu().numpy()
-                mus, pis, sigmas = get_mixture_params(out.detach().cpu(), p=16)
+                mus, pis, sigmas = get_mixture_params(out.detach().cpu(), p=nr_prototypes)
                 # We obtain the mixture probabilities
                 mus = mus[0].detach().cpu().numpy()
 
@@ -125,7 +86,7 @@ def visualize_pt_per_sample(type, fold, mode, split_folder, results_dir, wsi_fea
     get_mixture_plot_figure(all_mus_mean, plot_path=fig_path)
 
     # Visualize prototypes
-    for i in range(16):
+    for i in range(nr_prototypes):
         print(f"Prototype {i}")
         slide_best_patches = []  # Track best patch per slide for this prototype
 
@@ -178,20 +139,22 @@ def visualize_pt_per_sample(type, fold, mode, split_folder, results_dir, wsi_fea
 
 
 def main(args):
-    
+    set_seed(args.seed)
     split_folder = f"../data/data_files/tcga_{args.data_type}/splits/{args.fold}"
-    result_dir = f'wsi_representations_vis/tcga_{args.data_type}/{args.fold}'
+    result_dir = f'wsi_representations_vis/tcga_{args.data_type}/pt_{args.nr_prototypes}/{args.fold}'
     os.makedirs(result_dir, exist_ok=True)
 
     # Visualize prototypes with one patch per sample for the train set
-    visualize_pt_per_sample(args.data_type, args.fold, 'train', split_folder, result_dir, args.wsi_feats, args.threshold)
+    visualize_pt_per_sample(args.data_type, args.fold, 'train', split_folder, result_dir, args.wsi_feats, args.threshold, args.nr_prototypes)
 
     # Visualize prototypes with one patch per sample for the test set
-    visualize_pt_per_sample(args.data_type, args.fold, 'test', split_folder, result_dir, args.wsi_feats, args.threshold)
+    visualize_pt_per_sample(args.data_type, args.fold, 'test', split_folder, result_dir, args.wsi_feats, args.threshold, args.nr_prototypes)
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--data_type', type=str, default='brca')
+    parser.add_argument('--nr_prototypes', type=int, default=16)
     parser.add_argument('--fold', type=int, default=2)
     parser.add_argument('--wsi_feats', type=str, default='extracted_res0_5_patch256_uni', help='manually specify the wsi feat types')
     parser.add_argument('--threshold', type=float, default=0.9)

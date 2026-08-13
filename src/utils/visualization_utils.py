@@ -37,13 +37,13 @@ def find_fold(slide_id, type, mode):
     
     raise ValueError("Slide is not in the dataset")
 
-def get_panther_encoder(split_folder):
+def get_panther_encoder(split_folder, nr_prototypes=16):
     """ Load the PANTHER model for obtaining WSI embeddings. Needed for visualization of WSI prototypes. """
     # Define args
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     class Args:
         in_dim = 1024
-        n_proto = 16
+        n_proto = nr_prototypes
         em_iter = 1
         tau = 0.001
         ot_eps = 0.1
@@ -51,7 +51,7 @@ def get_panther_encoder(split_folder):
 
     args = Args()
     
-    prototypes = get_prototypes(args.n_proto, args.in_dim, split_folder, 'prototypes/prototypes_16_type_faiss_init_3_nr_100000.pkl')
+    prototypes = get_prototypes(args.n_proto, args.in_dim, split_folder, f'prototypes/prototypes_{nr_prototypes}_type_faiss_init_3_nr_100000.pkl')
 
     model = PANTHER(args, prototypes, device).to(device)
     model.eval()
@@ -222,7 +222,7 @@ def pathway_swarm_plot(plot_data, color_name="SHAP value", x_name="Mean expressi
     """ Plot the mean pathway expression of all samples per pathway together with the predicted risk score (group level). """
     
     # Normalize the color scale, indiciated by the predicted risk score, around zero.
-    col_val = plot_data[color_name]
+    col_val = plot_data["Color value"]
     cbar_name = color_name
     
     max_val = np.max(np.abs(col_val))
@@ -237,7 +237,7 @@ def pathway_swarm_plot(plot_data, color_name="SHAP value", x_name="Mean expressi
     for pathway in pathways:
         subset = plot_data[plot_data["Pathway"] == pathway]
         x = subset[x_name]
-        y = subset[color_name]
+        y = subset["Color value"]
         
         sp_r, sp_p = spearmanr(x, y)
         pe_r, pe_p = pearsonr(x, y)

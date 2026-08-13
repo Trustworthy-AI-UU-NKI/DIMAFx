@@ -32,43 +32,6 @@ def get_dataset(args, mode, fold):
 
     return dataset, in_dim
 
-
-def prepare_data_shap_start(data, wsi_dim, num_proto_wsi=16):
-    """ Function that prepares the data to obtain shap values of initial embeddings. """
-    # WSI [N, 16, 2049]
-    wsi_tensor = data.X
-
-    # RNA [N, 50, 2049] (padded with zeros to 2049)
-    pathway_summs_all = []
-
-    # Put the RNA data in the pathways forms
-    samples = []
-    for i in range(data.__len__()):
-        pathway_summary = []
-        
-        case_id = data.data_df.loc[i]['slide_id']
-        samples.append(case_id)
-        # Obtain the pathway summary 
-        for j in range(len(data.pathway_names)):
-    
-            data_rna = torch.Tensor(data.df_rna.loc[case_id, data.rna_names[j]])
-            padding_size = wsi_dim - data_rna.size(0)
-            # Padd with zeros
-            padded_tensor = torch.cat([data_rna, torch.zeros(padding_size)], dim=0)
-
-            pathway_summary.append(padded_tensor)
-        
-        pathway_summary = torch.stack(pathway_summary)
-        
-        pathway_summs_all.append(pathway_summary)
-
-    pathway_summs_all = torch.stack(pathway_summs_all)  
-
-    data_tensor = torch.cat((wsi_tensor, pathway_summs_all), dim=1)  
-    feature_names = [f"wsi_pt_{i}" for i in range(num_proto_wsi)] + [f"rna_pt_{i}" for i in range(50)]
-
-    return data_tensor, feature_names, samples
-
 def prepare_data_shap_pre_attn(data, model, num_w, num_proto_wsi=16):
     """ Function that prepares the data to obtain shap values of the unimodal embeddings before fusion. """
     dataloader = DataLoader(data, batch_size=model.batch_size, shuffle=False, num_workers=num_w)
@@ -105,7 +68,7 @@ def prepare_data_shap_post_attn_av(data, model, num_w):
 
     return preproc_dataset, feature_names, samples
 
-def survival_shap(args, fold, post_attn='start', background_seed=None):
+def survival_shap(args, fold, post_attn='modal', background_seed=None):
     """ Obtain shap values for trained survival prediction model. """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     results_dir_fold =  os.path.join(args.result_dir, f"Fold_{fold}/")
@@ -132,11 +95,7 @@ def survival_shap(args, fold, post_attn='start', background_seed=None):
     model.from_pretrained(pretrained_model_path)
 
     # Obtain input data for the shap_module
-    if post_attn == 'start':
-        train_data, feature_names, samples_train = prepare_data_shap_start(train_data, wsi_dim, num_proto_wsi=args.n_proto)
-        test_data, feature_names_test, samples_test = prepare_data_shap_start(test_data, wsi_dim, num_proto_wsi=args.n_proto)
-        assert feature_names_test == feature_names
-    elif post_attn == 'modal':  
+    if post_attn == 'modal':  
         train_data, feature_names, samples_train = prepare_data_shap_pre_attn(train_data, model, args.num_workers, num_proto_wsi=args.n_proto)
         test_data, feature_names_test, samples_test = prepare_data_shap_pre_attn(test_data, model, args.num_workers, num_proto_wsi=args.n_proto)
         assert feature_names_test == feature_names

@@ -49,8 +49,8 @@ def jaccard_stability(shap_values, feature_names, k=10, n_bootstrap=100):
     return results_j
 
 
-def get_shap_dict(dir):
-    shap_results_fold_dir = os.path.join(dir, 'shap_all_test.pkl')
+def get_shap_dict(dir, shap_ref_distr):
+    shap_results_fold_dir = os.path.join(dir, f'shap_all_test_{shap_ref_distr}.pkl')
     shap_dict = pickle.load(open(shap_results_fold_dir, 'rb'))     
     shap_values = np.sum(shap_dict['shap values'], axis=2)
     feature_names = list(shap_dict['Feature names'])
@@ -63,7 +63,7 @@ def compute_shap_stability(dir, repr_type, bootstrap_samples=100):
         fold_dir = os.path.join(dir, f'Fold_{i}/post_training/shap/{repr_type}')
         for k in [5, 10, 20, 30]:
             print(f"Evaluating stability for top-{k} features...")
-            shap_values, feature_names = get_shap_dict(fold_dir)
+            shap_values, feature_names = get_shap_dict(fold_dir, args.shap_refdist_n)
             results_k =jaccard_stability(shap_values, feature_names, k=k, n_bootstrap=bootstrap_samples)
             results[f"Top_{k}"] = results_k
     
@@ -72,7 +72,7 @@ def compute_shap_stability(dir, repr_type, bootstrap_samples=100):
 
 def main(args):
     set_seed(args.seed)
-    dir = os.path.join(args.dir, f'dss_survival_{args.data_type}/DIMAFx/')
+    dir = os.path.join(args.dir, f'dss_survival_{args.data_type}/{args.experiment}/')
 
     # Check stability for unimodal representations
     compute_shap_stability(dir, 'modal', args.bootstrap_samples)
@@ -85,9 +85,11 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--data_type', type=str, default='brca')
-    parser.add_argument('--dir', type=str, default='../results/ablations/')
+    parser.add_argument('--experiment', type=str, default='DIMAFx')
+    parser.add_argument('--dir', type=str, default='../results/')
     parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--bootstrap_samples', type=float, default=100)
+    parser.add_argument('--shap_refdist_n', type=int, default=512)
+    parser.add_argument('--bootstrap_samples', type=int, default=100)
     args = parser.parse_args()
     
     main(args)
