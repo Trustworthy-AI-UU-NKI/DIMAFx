@@ -72,7 +72,7 @@ When you have run all your experiments, run the following command to get the Kap
 python plot_KM_curves.py --exp_code DIMAFx
 ```
 
-If you want to obtain the KM curves for DIMAF, change `--exp_code` to `DIMAF`
+If you want to obtain the KM curves for DIMAF or any other ablation variant, change `--exp_code` to the corresponding experiment that you ran in 3.
 
 
 ## 5. Running SHAP for feature importance of the disentangled representations

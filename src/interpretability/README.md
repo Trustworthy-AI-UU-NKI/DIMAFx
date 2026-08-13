@@ -6,7 +6,10 @@ Before the interpretability analysis, go to the [README](../README.md) in `src` 
 
 ## SHAP stability across bootstrapped test sets
 
-`compute_shap_stability.py` quantifies how robust the top-ranked SHAP features are to the choice of test samples (Table F.1 in the paper).
+`compute_shap_stability.py` quantifies how robust the top-ranked SHAP features are to the choice of test samples (Table F.1 in the paper). Here, `--experiment` refers to the name of the experiment, e.g., DIMAFx or DIMAF.
+```
+python compute_shap_stability.py --experiment DIMAFx --data_type brca --bootstrap_samples 100 --shap_refdist_n 512
+```
 
 For each fold and each *k* ∈ {5, 10, 20, 30}:
 
@@ -28,6 +31,8 @@ This sections explains how to do the unimodal interpretability analysis. Initial
     - Visualizing the mixture weight distribution
     - Visualizing the prototypes by using the closest patches, with max one patch per prototype per WSI 
     - This code will create the figures described above in a `wsi_representations_vis/` folder within the current dir. You can use these to annotate the WSI features.
+    - `--threshold` argument defines the minimum likelihood the patch has to have to represent the specific prototype. This depends on your number of prototypes and the dataset, so have a look at your distribution to find the most optimal threshold. For DIMAFx on BRCA, use the default 0.9
+    - Change `--data_type`, `--nr_prototypes` `--fold` accordingly.
 - `visualize_wsi_feats.ipynb` – Notebook for visualizing the features of one WSI:
     - Visualizing the mixture proportion distribution
     - Visualizing the prototypes by using the closest patches 
@@ -35,6 +40,8 @@ This sections explains how to do the unimodal interpretability analysis. Initial
 - `high_low_risk_wsi_feats.ipynb` - Code used to visualize the WSI features in the paper. 
     - Visualizing specific WSI features of specific samples.
     - Visualizing specific WSI features to show variability within protoypes. This shows high, low and intermediate risk features for a specific WSI feature.
+    - Change `--exp`, `--shap_refdist_n`, `--data_type`, `--nr_pt` `--fold` accordingly.
+
 
 ### Visualize Transcriptomics features
 - `visualize_transcriptomics_feats.ipynb` – Notebook for visualizing the transcriptomics features:

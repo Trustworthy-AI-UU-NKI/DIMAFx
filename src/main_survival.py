@@ -31,8 +31,6 @@ def k_fold_shap(args):
     """ Obtain shap values for k-folds. """
     for i in range(args.folds):
         print(f"Fold {i}")
-        # SHAP on input (where gradients start to flow; 2 representations)
-        survival_shap(args, i, 'start')
         # Pre attention SHAP (modality experiment of 2 representations)
         survival_shap(args, i, 'modal')
         # Post attention SHAP (shared/specific experiment of 4 representations)
@@ -45,8 +43,6 @@ def k_fold_shap_stable(args):
     for seed in [1, 2, 3, 4, 5]:
         for i in range(args.folds):
             print(f"Fold {i}")
-            # SHAP on input (where gradients start to flow; 2 representations)
-            # survival_shap(args, i, 'start')
             # Pre attention SHAP (modality experiment of 2 representations)
             survival_shap(args, i, 'modal', background_seed=seed)
             # Post attention SHAP (shared/specific experiment of 4 representations)
