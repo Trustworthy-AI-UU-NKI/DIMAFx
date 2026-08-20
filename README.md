@@ -40,7 +40,20 @@ This project builds upon several excellent research repositories, including [DIM
 We are grateful to the authors and developers of these projects for their contributions and for sharing their work openly.
 
 ## Paper
-This is de codebase for our preprint [Bridging the gap between Performance and Interpretability: An Explainable Disentangled Multimodal Framework for Cancer Survival Prediction](https://arxiv.org/pdf/2603.02162). Please consider citing our work if it contributes to your research.
+This is de codebase for our paper [Bridging the gap between performance and interpretability: An explainable disentangled multimodal framework for cancer survival prediction](https://doi.org/10.1016/j.artmed.2026.103504). Please consider citing our work if it contributes to your research.
+
+```
+@article{EIJPE2026103504,
+  title = {Bridging the gap between performance and interpretability: An explainable disentangled multimodal framework for cancer survival prediction},
+  journal = {Artificial Intelligence in Medicine},
+  volume = {181},
+  pages = {103504},
+  year = {2026},
+  issn = {0933-3657},
+  doi = {https://doi.org/10.1016/j.artmed.2026.103504},
+  author = {Aniek Eijpe and Soufyan Lakbir and Melis {Erdal Cesur} and Sara P. Oliveira and Angelos Chatzimparmpas and Sanne Abeln and Wilson Silva},
+}
+```
 
 
 
