@@ -12,10 +12,6 @@ While multimodal survival prediction models are increasingly more accurate, thei
 - **02-03-2026:** First version of the codebase is online!
 - **05-08-2026:** Updated codebase with ablation study, censoring and SHAP stability experiments, and additional support for the interpretability analysis.
 
-## Model checkpoints
-Our model is trained on the outputs of the [UNI](https://github.com/mahmoodlab/UNI) foundation model. Due to [UNI licensing restrictions](https://huggingface.co/MahmoodLab/UNI), we cannot provide the pretrained weights of our model directly.
-Instead, we provide detailed instructions to fully reproduce our results. If anything is unclear or if you encounter issues, please don’t hesitate to open an issue or contact us via email at a.eijpe@uu.nl.
-
 ## Usage
 ### Installation
 After cloning the repository, create the DIMAFx conda environment as follows:
